@@ -7,6 +7,7 @@ from numba.typed import List
 from scipy import stats, signal
 from .masks import create_masks
 from ..io import BinaryFile
+from scipy.ndimage import median_filter
 
 def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
     """ extracts activity from reg_file using masks in stat and neuropil_masks
@@ -59,6 +60,8 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
     
     F    = np.zeros((ncells, nframes),np.float32)
     Fneu = np.zeros((ncells, nframes),np.float32)
+    F_smooth = np.zeros((ncells, nframes),np.float32)
+    Fneu_smooth = np.zeros((ncells, nframes),np.float32)
 
     nimgbatch = int(nimgbatch)
     
@@ -80,6 +83,10 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
         nimg = data.shape[0]
         if nimg == 0:
             break
+        data_filt = median_filter(data,footprint=np.ones((3,1,1)),mode='wrap')
+        #import pdb
+        #pdb.set_trace()
+        data_filt = np.reshape(data_filt,(nimg,-1)).astype(np.float32)
         inds = ix+np.arange(0,nimg,1,int)
         data = np.reshape(data, (nimg,-1)).astype(np.float32)
         Fi = np.zeros((ncells, data.shape[0]), np.float32)
@@ -92,14 +99,16 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
         # Fneu[:,inds] = np.dot(neuropil_masks , data.T)
 
         # WITH NUMBA
+        F_smooth[:,inds]=matmul_traces(Fi,data_filt,cell_ipix,cell_lam)
         F[:,inds] = matmul_traces(Fi, data, cell_ipix, cell_lam)
         if neuropil_ipix is not None:
             Fneu[:,inds] = matmul_neuropil(Fi, data, neuropil_ipix, neuropil_npix)
+            Fneu_smooth[:,inds] = matmul_neuropil(Fi,data_filt,neuropil_ipix,neuropil_npix)
 
         ix += nimg
     print('Extracted fluorescence from %d ROIs in %d frames, %0.2f sec.'%(ncells, ops['nframes'], time.time()-t0))
     reg_file.close()
-    return F, Fneu, ops
+    return F, Fneu, ops,F_smooth,Fneu_smooth
 
 @njit(parallel=True)
 def matmul_traces(Fi, data, cell_ipix, cell_lam):
@@ -125,12 +134,12 @@ def extract_traces_from_masks(ops, cell_masks, neuropil_masks):
     F_chan2, Fneu_chan2 = [], []
     with BinaryFile(Ly=ops['Ly'], Lx=ops['Lx'],
                     read_filename=ops['reg_file']) as f:    
-        F, Fneu, ops = extract_traces(ops, cell_masks, neuropil_masks, f)
+        F, Fneu, ops,F_smooth,Fneu_smooth = extract_traces(ops, cell_masks, neuropil_masks, f)
     if 'reg_file_chan2' in ops:
         with BinaryFile(Ly=ops['Ly'], Lx=ops['Lx'],
                         read_filename=ops['reg_file_chan2']) as f:    
             F_chan2, Fneu_chan2, _ = extract_traces(ops.copy(), cell_masks, neuropil_masks, f)
-    return F, Fneu, F_chan2, Fneu_chan2, ops
+    return F, Fneu, F_chan2, Fneu_chan2, ops,F_smooth,Fneu_smooth
 
 def create_masks_and_extract(ops, stat, cell_masks=None, neuropil_masks=None):
     """ creates masks, computes fluorescence, and saves stat, F, and Fneu to \*.npy
@@ -166,7 +175,7 @@ def create_masks_and_extract(ops, stat, cell_masks=None, neuropil_masks=None):
             neuropil_masks = neuropil_masks0
         print('Masks created, %0.2f sec.' % (time.time() - t10))    
 
-    F, Fneu, F_chan2, Fneu_chan2, ops = extract_traces_from_masks(ops, cell_masks, neuropil_masks)
+    F, Fneu, F_chan2, Fneu_chan2, ops, F_smooth,Fneu_smooth= extract_traces_from_masks(ops, cell_masks, neuropil_masks)
     
     # subtract neuropil
     dF = F - ops['neucoeff'] * Fneu
@@ -179,7 +188,7 @@ def create_masks_and_extract(ops, stat, cell_masks=None, neuropil_masks=None):
         stat[k]['std'] = sd[k]
         stat[k]['neuropil_mask'] = neuropil_masks[k]
     
-    return ops, stat, F, Fneu, F_chan2, Fneu_chan2
+    return ops, stat, F, Fneu, F_chan2, Fneu_chan2,F_smooth,Fneu_smooth
 
 
 def enhanced_mean_image(ops):

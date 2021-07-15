@@ -244,13 +244,15 @@ def run_plane(ops, ops_path=None, stat=None):
         ######## ROI EXTRACTION ##############
         t11=time.time()
         print('----------- EXTRACTION')
-        ops, stat, F, Fneu, F_chan2, Fneu_chan2 = extraction.create_masks_and_extract(ops, stat)
+        ops, stat, F, Fneu, F_chan2, Fneu_chan2,F_smooth,Fneu_smooth = extraction.create_masks_and_extract(ops, stat)        
         # save results
         np.save(ops['ops_path'], ops)
         fpath = ops['save_path']
         np.save(os.path.join(fpath, 'stat.npy'), stat)
         np.save(os.path.join(fpath,'F.npy'), F)
         np.save(os.path.join(fpath,'Fneu.npy'), Fneu)
+        np.save(os.path.join(fpath,'F_smooth.npy'), F_smooth)
+        np.save(os.path.join(fpath,'Fneu_smooth.npy'), Fneu_smooth)
         # if second channel, save F_chan2 and Fneu_chan2
         if 'meanImg_chan2' in ops:
             np.save(os.path.join(fpath, 'F_chan2.npy'), F_chan2)
@@ -301,7 +303,9 @@ def run_plane(ops, ops_path=None, stat=None):
                     'stat': np.load(os.path.join(fpath, 'stat.npy'), allow_pickle=True),
                     'ops': ops,
                     'F': F,
+                    'F_smooth': F_smooth,
                     'Fneu': Fneu,
+                    'Fneu_smooth': Fneu_smooth,
                     'spks': spks,
                     'iscell': np.load(os.path.join(fpath, 'iscell.npy'))
                 }
