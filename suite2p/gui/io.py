@@ -2,6 +2,7 @@ import os, time
 import numpy as np
 import scipy.io
 from PyQt5 import QtGui
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
 from . import utils, masks, views, graphics, traces, classgui
 from .. import io
@@ -17,7 +18,14 @@ def make_masks_and_enable_buttons(parent):
     parent.ops_plot['view'] = 0
     parent.colors['cols'] = 0
     parent.colors['istat'] = 0
-
+    try:
+        parent.roi_text(False)
+    except:
+        0
+    parent.roi_text_labels=[]
+    parent.roitext = False 
+    parent.checkBoxN.setChecked(False)
+    parent.checkBoxN.setEnabled(True)
     parent.loadBeh.setEnabled(True)
     parent.saveMat.setEnabled(True)
     parent.saveNWB.setEnabled(True)
@@ -88,11 +96,10 @@ def make_masks_and_enable_buttons(parent):
     parent.xyrat = 1.0
     if (isinstance(parent.ops['diameter'], (list, np.ndarray)) and
         len(parent.ops['diameter'])>1 and
-        parent.ops['aspect']==1.0):
+        parent.ops.get('aspect', 1.0)):
         parent.xyrat = parent.ops["diameter"][0] / parent.ops["diameter"][1]
     else:
-        if 'aspect' in parent.ops:
-            parent.xyrat = parent.ops['aspect']
+        parent.xyrat = parent.ops.get('aspect', 1.0)
 
     parent.p1.setAspectLocked(lock=True, ratio=parent.xyrat)
     parent.p2.setAspectLocked(lock=True, ratio=parent.xyrat)
@@ -165,9 +172,9 @@ def enable_views_and_classifier(parent):
     # parent.p1.scene().showExportDialog()
 
 def load_dialog(parent):
-    options=QtGui.QFileDialog.Options()
-    options |= QtGui.QFileDialog.DontUseNativeDialog
-    name = QtGui.QFileDialog.getOpenFileName(
+    options = QFileDialog.Options()
+    options |= QFileDialog.DontUseNativeDialog
+    name = QFileDialog.getOpenFileName(
         parent, "Open stat.npy", filter="stat.npy",
         options=options
     )
@@ -175,9 +182,9 @@ def load_dialog(parent):
     load_proc(parent)
 
 def load_dialog_NWB(parent):
-    options=QtGui.QFileDialog.Options()
-    options |= QtGui.QFileDialog.DontUseNativeDialog
-    name = QtGui.QFileDialog.getOpenFileName(
+    options=QFileDialog.Options()
+    options |= QFileDialog.DontUseNativeDialog
+    name = QFileDialog.getOpenFileName(
         parent, "Open ophys.nwb", filter="*.nwb",
         options=options
     )
@@ -185,9 +192,9 @@ def load_dialog_NWB(parent):
     load_NWB(parent)
     
 def load_dialog_folder(parent):
-    options=QtGui.QFileDialog.Options()
-    options |= QtGui.QFileDialog.DontUseNativeDialog
-    name = QtGui.QFileDialog.getExistingDirectory(
+    options=QFileDialog.Options()
+    options |= QFileDialog.DontUseNativeDialog
+    name = QFileDialog.getExistingDirectory(
         parent, "Open folder with planeX folders",
         options=options
     )
@@ -265,24 +272,24 @@ def load_files(name):
         try:
             iscell = np.load(basename + "/iscell.npy")
             probcell = iscell[:, 1]
-            iscell = iscell[:, 0].astype(np.bool)
+            iscell = iscell[:, 0].astype('bool')
         except (ValueError, OSError, RuntimeError, TypeError, NameError):
             print("no manual labels found (iscell.npy)")
             if goodfolder:
                 NN = Fcell.shape[0]
-                iscell = np.ones((NN,), np.bool)
+                iscell = np.ones((NN,), 'bool')
                 probcell = np.ones((NN,), np.float32)
         try:
             redcell = np.load(basename + "/redcell.npy")
             probredcell = redcell[:,1].copy()
-            redcell = redcell[:,0].astype(np.bool)
+            redcell = redcell[:,0].astype('bool')
             hasred = True
         except (ValueError, OSError, RuntimeError, TypeError, NameError):
             print("no channel 2 labels found (redcell.npy)")
             hasred = False
             if goodfolder:
                 NN = Fcell.shape[0]
-                redcell = np.zeros((NN,), np.bool)
+                redcell = np.zeros((NN,), 'bool')
                 probredcell = np.zeros((NN,), np.float32)
     else:
         print("incorrect file, not a stat.npy")
@@ -314,12 +321,12 @@ def load_to_GUI(parent, basename, procs):
     parent.Fcell = Fcell
     parent.Fneu = Fneu
     parent.Spks = Spks
-    parent.iscell = iscell.astype(np.bool)
+    parent.iscell = iscell.astype('bool')
     parent.probcell = probcell
-    parent.redcell = redcell.astype(np.bool)
+    parent.redcell = redcell.astype('bool')
     parent.probredcell = probredcell
     parent.hasred = hasred
-    parent.notmerged = np.ones_like(parent.iscell).astype(np.bool)
+    parent.notmerged = np.ones_like(parent.iscell).astype('bool')
     for n in range(len(parent.stat)):
         if parent.hasred:
             parent.stat[n]['chan2_prob'] = parent.probredcell[n]
@@ -333,7 +340,7 @@ def load_to_GUI(parent, basename, procs):
             parent.stat[n]['imerge'] = []
 
 def load_behavior(parent):
-    name = QtGui.QFileDialog.getOpenFileName(
+    name = QFileDialog.getOpenFileName(
         parent, "Open *.npy", filter="*.npy"
     )
     name = name[0]
@@ -434,10 +441,10 @@ def save_merge(parent):
                               parent.probcell[:,np.newaxis]), axis=1)
     np.save(os.path.join(parent.basename, 'iscell.npy'), iscell)
     
-    parent.notmerged = np.ones(parent.iscell.size, np.bool)
+    parent.notmerged = np.ones(parent.iscell.size, 'bool')
 
 def load_custom_mask(parent):
-    name = QtGui.QFileDialog.getOpenFileName(
+    name = QFileDialog.getOpenFileName(
         parent, "Open *.npy", filter="*.npy"
     )
     name = name[0]
@@ -465,8 +472,9 @@ def load_custom_mask(parent):
 
 
 def load_again(parent, Text):
-    tryagain = QtGui.QMessageBox.question(
-        parent, "ERROR", Text, QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+    tryagain = QMessageBox.question(
+        parent, "ERROR", Text, QMessageBox.Yes | QMessageBox.No
     )
-    if tryagain == QtGui.QMessageBox.Yes:
-        parent.load_dialog()
+
+    if tryagain == QMessageBox.Yes:
+        load_dialog(parent)

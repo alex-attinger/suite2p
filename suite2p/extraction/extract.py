@@ -2,7 +2,7 @@ import os
 import time
 
 import numpy as np
-from numba import prange, njit, jit
+from numba import prange, njit, jit, int64, float32
 from numba.typed import List
 from scipy import stats, signal
 from .masks import create_masks
@@ -66,18 +66,22 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
 
     nimgbatch = int(nimgbatch)
     
-    cell_ipix = List()
+    cell_ipix, cell_lam = List(), List()
     [cell_ipix.append(cell_mask[0].astype(np.int64)) for cell_mask in cell_masks]
-    cell_lam = List()
     [cell_lam.append(cell_mask[1].astype(np.float32)) for cell_mask in cell_masks]
+
+    #cell_ipix = [int64(cell_mask[0]) for cell_mask in cell_masks]
+    #cell_lam = [float32(cell_mask[1]) for cell_mask in cell_masks]
+
     if neuropil_masks is not None:
-        if isinstance(neuropil_masks, np.ndarray) and neuropil_masks.shape[1] == Ly*Lx:
-            neuropil_masks = [np.nonzero(neuropil_mask)[0] for neuropil_mask in neuropil_masks]
-        else:
-            neuropil_masks = [neuropil_mask.astype(np.int64) for neuropil_mask in neuropil_masks]
         neuropil_ipix = List()
-        [neuropil_ipix.append(neuropil_mask) for neuropil_mask in neuropil_masks]
+        if isinstance(neuropil_masks, np.ndarray) and neuropil_masks.shape[1] == Ly*Lx:
+            [neuropil_ipix.append(np.nonzero(neuropil_mask)[0]) for neuropil_mask in neuropil_masks]
+        else:
+            [neuropil_ipix.append(neuropil_mask.astype(np.int64)) for neuropil_mask in neuropil_masks]
         neuropil_npix = np.array([len(neuropil_ipixi) for neuropil_ipixi in neuropil_ipix]).astype(np.float32)
+    else:
+        neuropil_ipix = None
 
     ix = 0
     for k, (_, data) in enumerate(reg_file.iter_frames(batch_size=ops['batch_size'])):
@@ -96,9 +100,9 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
         # extract traces and neuropil
         
         # (WITHOUT NUMBA)
-        # for n in range(ncells):
+        #for n in range(ncells):
         #    F[n,inds] = np.dot(data[:, cell_masks[n][0]], cell_masks[n][1])
-        # Fneu[:,inds] = np.dot(neuropil_masks , data.T)
+        #Fneu[:,inds] = np.dot(neuropil_masks , data.T)
 
         # WITH NUMBA
         F_smooth[:,inds]=matmul_traces(Fi,data_filt,cell_ipix,cell_lam)
@@ -114,7 +118,7 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
 
 @njit(parallel=True)
 def matmul_traces(Fi, data, cell_ipix, cell_lam):
-    ncells = len(cell_ipix)
+    ncells = Fi.shape[0]
     for n in prange(ncells):
         Fi[n] = np.dot(data[:, cell_ipix[n]], cell_lam[n])
     return Fi
@@ -144,7 +148,7 @@ def extract_traces_from_masks(ops, cell_masks, neuropil_masks):
     return F, Fneu, F_chan2, Fneu_chan2, ops,F_smooth,Fneu_smooth
 
 def create_masks_and_extract(ops, stat, cell_masks=None, neuropil_masks=None):
-    """ creates masks, computes fluorescence, and saves stat, F, and Fneu to \*.npy
+    """ creates masks, computes fluorescence, and saves stat, F, and Fneu to .npy
 
     Parameters
     ----------------
@@ -188,7 +192,8 @@ def create_masks_and_extract(ops, stat, cell_masks=None, neuropil_masks=None):
     for k in range(F.shape[0]):
         stat[k]['skew'] = sk[k]
         stat[k]['std'] = sd[k]
-        stat[k]['neuropil_mask'] = neuropil_masks[k]
+        if not neuropil_masks is None:
+            stat[k]['neuropil_mask'] = neuropil_masks[k]
     
     return ops, stat, F, Fneu, F_chan2, Fneu_chan2,F_smooth,Fneu_smooth
 
