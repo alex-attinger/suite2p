@@ -8,6 +8,7 @@ from scipy import stats, signal
 from .masks import create_masks
 from ..io import BinaryFile
 from scipy.ndimage import median_filter
+from scipy.ndimage import uniform_filter
 
 def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
     """ extracts activity from reg_file using masks in stat and neuropil_masks
@@ -83,7 +84,8 @@ def extract_traces(ops, cell_masks, neuropil_masks, reg_file):
         nimg = data.shape[0]
         if nimg == 0:
             break
-        data_filt = median_filter(data,footprint=np.ones((3,1,1)),mode='wrap')
+        #data_filt = median_filter(data,footprint=np.ones((3,1,1)),mode='wrap')
+        data_filt = uniform_filter(data,[3,1,1],mode='wrap')
         #import pdb
         #pdb.set_trace()
         data_filt = np.reshape(data_filt,(nimg,-1)).astype(np.float32)
