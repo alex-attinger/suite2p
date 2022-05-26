@@ -303,7 +303,7 @@ def run_plane(ops, ops_path=None, stat=None):
             stat = np.load(os.path.join(ops['save_path'], 'stat.npy'), allow_pickle=True)
             iscell = np.load(os.path.join(ops['save_path'], 'iscell.npy'))
             redcell = np.load(os.path.join(ops['save_path'], 'redcell.npy')) if ops['nchannels']==2 else []
-            io.save_mat(ops, stat, F, Fneu, spks, iscell, redcell)
+            io.save_mat(ops, stat, F, Fneu, spks, iscell, redcell,F_smooth,Fneu_smooth)
             
     else:
         print("WARNING: skipping cell detection (ops['roidetect']=False)")

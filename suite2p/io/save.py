@@ -5,7 +5,7 @@ from datetime import datetime
 import scipy
 import pathlib
 
-def save_mat(ops, stat, F, Fneu, spks, iscell, redcell):
+def save_mat(ops, stat, F, Fneu, spks, iscell, redcell,F_smooth,Fneu_smooth):
     ops_matlab = ops.copy()
     if ops_matlab.get('date_proc'):
         try:
@@ -30,7 +30,9 @@ def save_mat(ops, stat, F, Fneu, spks, iscell, redcell):
             'Fneu': Fneu,
             'spks': spks,
             'iscell': iscell,
-            'redcell': redcell
+            'redcell': redcell,
+            'Fneu_smooth': Fneu_smooth,
+            'F_smooth' : F_smooth
         }
     )
 
@@ -194,7 +196,7 @@ def combined(save_folder, save=True):
         # save as matlab file
         if ops.get('save_mat'):
             matpath = os.path.join(ops['save_path'],'Fall.mat')
-            save_mat(ops, stat, F, Fneu, spks, iscell, redcell)
+            save_mat(ops, stat, F, Fneu, spks, iscell, redcell,0,0)
             
     return stat, ops, F, Fneu, spks, iscell[:,0], iscell[:,1], redcell[:,0], redcell[:,1], hasred
 
