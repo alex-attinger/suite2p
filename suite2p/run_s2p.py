@@ -137,7 +137,7 @@ def pipeline(f_reg, f_raw=None, f_reg_chan2=None, f_raw_chan2=None,
             ######## ROI EXTRACTION ##############
             t11=time.time()
             print('----------- EXTRACTION')
-            stat, F, Fneu, F_chan2, Fneu_chan2 = extraction.extraction_wrapper(stat, f_reg, f_reg_chan2=f_reg_chan2, ops=ops)
+            stat, F, Fneu, F_chan2, Fneu_chan2,F_smooth,Fneu_smooth = extraction.extraction_wrapper(stat, f_reg, f_reg_chan2=f_reg_chan2, ops=ops)
             # save results
             if ops.get('ops_path'):
                 np.save(ops['ops_path'], ops)
@@ -182,6 +182,8 @@ def pipeline(f_reg, f_raw=None, f_reg_chan2=None, f_raw_chan2=None,
                 np.save(os.path.join(fpath,'Fneu.npy'), Fneu)
                 np.save(os.path.join(fpath, 'iscell.npy'), iscell)
                 np.save(os.path.join(ops['save_path'], 'spks.npy'), spks)
+                np.save(os.path.join(fpath,'F_smooth.npy'), F_smooth)
+                np.save(os.path.join(fpath,'Fneu_smooth.npy'), Fneu_smooth)
                 # if second channel, save F_chan2 and Fneu_chan2
                 if 'meanImg_chan2' in ops:
                     np.save(os.path.join(fpath, 'F_chan2.npy'), F_chan2)
@@ -192,7 +194,7 @@ def pipeline(f_reg, f_raw=None, f_reg_chan2=None, f_raw_chan2=None,
                 stat = np.load(os.path.join(ops['save_path'], 'stat.npy'), allow_pickle=True)
                 iscell = np.load(os.path.join(ops['save_path'], 'iscell.npy'))
                 redcell = np.load(os.path.join(ops['save_path'], 'redcell.npy')) if ops['nchannels']==2 else []
-                io.save_mat(ops, stat, F, Fneu, spks, iscell, redcell)
+                io.save_mat(ops, stat, F, Fneu, spks, iscell, redcell,F_smooth,Fneu_smooth)
         else:
             print('no ROIs found, only ops.npy file saved')
     else:

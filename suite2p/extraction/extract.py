@@ -7,7 +7,9 @@ from numba.typed import List
 from scipy import stats, signal
 from .masks import create_masks
 from ..io import BinaryRWFile
+from .. import default_ops
 from scipy.ndimage import median_filter
+
 from scipy.ndimage import uniform_filter
 
 def extract_traces(f_in, cell_masks, neuropil_masks, batch_size=500):
@@ -110,7 +112,7 @@ def extract_traces(f_in, cell_masks, neuropil_masks, batch_size=500):
             Fneu_smooth[:,inds] = matmul_neuropil(Fi,data_filt,neuropil_ipix,neuropil_npix)
 
         ix += nimg
-    print('Extracted fluorescence from %d ROIs in %d frames, %0.2f sec.'%(ncells, ops['nframes'], time.time()-t0))
+    print('Extracted fluorescence from %d ROIs in %d frames, %0.2f sec.'%(ncells, n_frames, time.time()-t0))
     #reg_file.close()
     return F, Fneu,F_smooth,Fneu_smooth
 

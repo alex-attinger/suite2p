@@ -198,6 +198,7 @@ def select_rois(ops: Dict[str, Any], mov: np.ndarray,
 	
 	t0 = time.time()
 	if sparse_mode:
+		print('detecting in sparse mode')
 		ops.update({'Lyc': mov.shape[1], 'Lxc': mov.shape[2]})
 		new_ops, stat = sparsedetect.sparsery(
 			mov=mov,

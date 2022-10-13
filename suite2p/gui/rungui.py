@@ -6,7 +6,7 @@ import numpy as np
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QDialog, QLineEdit, QLabel, QPushButton, QWidget, QGridLayout, QButtonGroup, QComboBox, QTextEdit, QFileDialog
 
-from cellpose.models import get_user_models, model_path, MODEL_NAMES
+#from cellpose.models import get_user_models, model_path, MODEL_NAMES
 
 from . import io
 from .. import default_ops
@@ -395,7 +395,7 @@ class RunWindow(QDialog):
         # pre-download model
         pretrained_model_string = self.ops.get('pretrained_model', 'cyto')
         pretrained_model_string = pretrained_model_string if pretrained_model_string is not None else 'cyto'
-        pretrained_model_path = model_path(pretrained_model_string, 0, True)
+        #pretrained_model_path = model_path(pretrained_model_string, 0, True)
         self.finish = True
         self.error = False
         ops_file = os.path.join(self.ops_path, 'ops.npy')
