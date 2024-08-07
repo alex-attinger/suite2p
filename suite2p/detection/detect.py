@@ -37,7 +37,8 @@ def bin_movie(f_reg, bin_size, yrange=None, xrange=None, badframes=None):
 	Lxc = xrange[1] - xrange[0]
 	mov = np.zeros((n_frames//bin_size, Lyc, Lxc), np.float32)
 	ik = 0
-	
+	#import pdb
+	#pdb.set_trace()
 	t0 = time.time()
 	for k in np.arange(0, n_frames, batch_size):
 		data = f_reg[k : min(k + batch_size, n_frames)]
@@ -59,6 +60,9 @@ def bin_movie(f_reg, bin_size, yrange=None, xrange=None, badframes=None):
 		n_bins = data.shape[0]
 		mov[ik : ik + n_bins] = data
 		ik += n_bins
+		if ik == mov.shape[0]:
+			print('end of binning loop')
+			break
 
 	print('Binned movie of size [%d,%d,%d] created in %0.2f sec.' % (mov.shape[0], mov.shape[1], mov.shape[2], time.time() - t0))
 
